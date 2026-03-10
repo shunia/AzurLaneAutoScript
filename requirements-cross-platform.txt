@@ -2,7 +2,7 @@
 # Replaces mxnet + cnocr 1.2.2 with ONNX-based OCR
 
 # OCR - ONNX backend (cross-platform)
-cnocr[ort-cpu]>=2.3.2
+cnocr[ort-cpu]>=2.2.4.2,<2.3
 onnxruntime>=1.16.0
 numpy>=1.26.4,<2.0.0
 
@@ -54,4 +54,5 @@ onepush==1.4.0
 pypresence==4.2.1
 
 # Platform-specific (conditional)
-pywin32==301; sys_platform == 'win32'
+pywin32==306; sys_platform == 'win32'
+

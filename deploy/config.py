@@ -35,6 +35,7 @@ class ConfigModel:
     StartOcrServer: bool = False
     OcrServerPort: int = 22268
     OcrClientAddress: str = "127.0.0.1:22268"
+    OcrBackend: str = "auto"
 
     # Update
     EnableReload: bool = True
@@ -203,3 +204,4 @@ class DeployConfig(ConfigModel):
             "and re-open Alas.exe"
         )
         logger.info("Take the screenshot of entire window if you need help")
+

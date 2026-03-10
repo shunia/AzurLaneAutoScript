@@ -1,0 +1,102 @@
+name: Build Multi-Platform
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: AlasApp_Windows
+            artifact_ext: .7z
+          - os: macos-latest
+            artifact_name: AlasApp_macOS
+            artifact_ext: .dmg
+          - os: ubuntu-latest
+            artifact_name: AlasApp_Linux
+            artifact_ext: .tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements-cross-platform.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements-cross-platform.txt
+
+      - name: OCR smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: python dev_tools/ocr_windows_test.py --backend onnx --langs azur_lane
+
+      - name: Build with PyInstaller (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --name Alas --windowed --add-data "assets;assets" --add-data "bin/cnocr_models;bin/cnocr_models" --hidden-import onnxruntime alas.py
+
+      - name: Build with PyInstaller (macOS/Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          pyinstaller --name Alas \
+            --windowed \
+            --add-data "assets:assets" \
+            --add-data "bin/cnocr_models:bin/cnocr_models" \
+            --hidden-import onnxruntime \
+            alas.py
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: 7z a ${{ matrix.artifact_name }}${{ matrix.artifact_ext }} ./dist/Alas
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Alas" \
+            --window-size 800 400 \
+            ${{ matrix.artifact_name }}${{ matrix.artifact_ext }} \
+            ./dist/Alas.app
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf ${{ matrix.artifact_name }}${{ matrix.artifact_ext }} -C ./dist Alas
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}${{ matrix.artifact_ext }}
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.artifact_name }}${{ matrix.artifact_ext }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

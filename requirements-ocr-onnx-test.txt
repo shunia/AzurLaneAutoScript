@@ -1,0 +1,5 @@
+# Minimal OCR test dependencies for Windows ONNX evaluation
+# Use in a dedicated virtualenv to avoid cnocr1/cnocr2 conflicts.
+
+cnocr[ort-cpu]>=2.3.2
+onnxruntime>=1.16.0

@@ -60,4 +60,3 @@ jobs:
           files: AlasApp_Windows.7z
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

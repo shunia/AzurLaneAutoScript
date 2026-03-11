@@ -1,4 +1,5 @@
 import argparse
+import importlib.util
 import os
 import sys
 import time
@@ -30,6 +31,11 @@ def parse_args():
         default=[],
         help='Optional image files for quick recognition output',
     )
+    parser.add_argument(
+        '--load-model',
+        action='store_true',
+        help='Actually load OCR models. This may require network/model assets.',
+    )
     return parser.parse_args()
 
 
@@ -40,17 +46,23 @@ def main():
     langs = [x.strip() for x in args.langs.split(',') if x.strip()]
     print(f'ALAS_OCR_BACKEND={args.backend}')
     print(f'LANGS={langs}')
+    print(f'cnocr_installed={importlib.util.find_spec("cnocr") is not None}')
+    print(f'onnxruntime_installed={importlib.util.find_spec("onnxruntime") is not None}')
+    print(f'load_model={args.load_model}')
 
     models = []
     for lang in langs:
         t0 = time.time()
         model = getattr(OCR_MODEL, lang)
-        backend = model.backend
         dt = time.time() - t0
-        print(f'[{lang}] backend={backend}, init={dt:.3f}s')
+        if args.load_model:
+            backend = model.backend
+            print(f'[{lang}] backend={backend}, init={dt:.3f}s')
+        else:
+            print(f'[{lang}] import_ok, init={dt:.3f}s')
         models.append((lang, model))
 
-    if not args.images:
+    if not args.load_model or not args.images:
         return
 
     for image_path in args.images:
